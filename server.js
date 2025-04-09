@@ -122,6 +122,11 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
   console.log('----------------------------------------');
   console.log('WEBHOOK RECEIVED');
   console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Raw body:', req.body.toString());
+  console.log('----------------------------------------');
+  console.log('----------------------------------------');
+  console.log('WEBHOOK RECEIVED');
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
   console.log('Body:', req.body.toString());
   console.log('----------------------------------------');
   console.log('Webhook received:', req.headers['stripe-signature']);
@@ -134,10 +139,17 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
     console.log('Event constructed successfully:', event.type);
     console.log('Webhook verified, event type:', event.type);
 
+    console.log('Event data:', JSON.stringify(event.data, null, 2));
     switch (event.type) {
       case 'checkout.session.completed':
+        console.log('----------------------------------------');
+        console.log('CHECKOUT SESSION COMPLETED');
+        console.log('----------------------------------------');
         const session = event.data.object;
-        console.log('Checkout completed:', session);
+        console.log('Session data:', JSON.stringify(session, null, 2));
+        console.log('Client reference ID:', session.client_reference_id);
+        console.log('Customer ID:', session.customer);
+        console.log('Subscription ID:', session.subscription);
         
         console.log('Processing checkout session:', session);
         // Obtener detalles de la suscripción
@@ -167,7 +179,10 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
         console.log('Saving to Supabase:', subscriptionData);
 
         // Guardar en Supabase
-        console.log('Attempting to save subscription to Supabase...');
+        console.log('----------------------------------------');
+        console.log('SAVING TO SUPABASE');
+        console.log('Data to save:', JSON.stringify(subscriptionData, null, 2));
+        console.log('----------------------------------------');
         const { data, error } = await supabase
           .from('subscriptions')
           .insert(subscriptionData)
