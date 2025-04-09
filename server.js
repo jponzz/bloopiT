@@ -158,21 +158,45 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
         console.log('----------------------------------------');
         console.log('CHECKOUT SESSION COMPLETED');
         console.log('----------------------------------------');
+        
+        // Obtener la sesión de checkout
         const session = event.data.object;
+        
+        // Esperar un momento para que Stripe procese la suscripción
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Obtener la factura para conseguir el ID de suscripción
+        const invoice = await stripe.invoices.retrieve(session.invoice);
+        console.log('Invoice retrieved:', invoice);
+        const subscriptionId = invoice.subscription;
+        console.log('Subscription ID from invoice:', subscriptionId);
+        // Ya tenemos la sesión arriba
         console.log('Session data:', JSON.stringify(session, null, 2));
         console.log('Client reference ID:', session.client_reference_id);
         console.log('Customer ID:', session.customer);
-        console.log('Subscription ID:', session.subscription);
+        console.log('Invoice ID:', session.invoice);
         
         console.log('Processing checkout session:', session);
-        // Obtener detalles de la suscripción
-        const subscriptionId = session.subscription;
+        // Ya tenemos el subscriptionId de la factura
         console.log('Subscription ID:', subscriptionId);
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         console.log('Retrieved subscription:', subscription);
+
+        // Obtener detalles del método de pago
+        const paymentMethod = await stripe.paymentMethods.retrieve(subscription.default_payment_method);
+        console.log('Payment method details:', paymentMethod);
+
+        // Actualizar datos del método de pago
+        const paymentMethodData = {
+          payment_method_brand: paymentMethod.card.brand,
+          payment_method_last4: paymentMethod.card.last4,
+          payment_method_exp_month: paymentMethod.card.exp_month,
+          payment_method_exp_year: paymentMethod.card.exp_year
+        };
         
         // Preparar datos para Supabase
         const subscriptionData = {
+          ...paymentMethodData,
           user_id: session.client_reference_id,
           stripe_subscription_id: subscriptionId,
           stripe_customer_id: session.customer,
