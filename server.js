@@ -33,13 +33,39 @@ const supabase = createClient(
   }
 );
 
-// Verificar conexión con Supabase
-supabase.from('subscriptions').select('count', { count: 'exact', head: true })
-  .then(() => console.log('Successfully connected to Supabase'))
-  .catch(err => {
-    console.error('Error connecting to Supabase:', err);
-    process.exit(1);
-  });
+// Verificar conexión con Supabase y estructura de la tabla
+async function checkSupabaseConnection() {
+  try {
+    const { count, error } = await supabase
+      .from('subscriptions')
+      .select('*', { count: 'exact', head: true });
+    
+    if (error) throw error;
+    console.log('Successfully connected to Supabase. Table exists.');
+    
+    // Verificar estructura de la tabla
+    const { error: schemaError } = await supabase
+      .from('subscriptions')
+      .select('user_id, stripe_subscription_id, stripe_customer_id, price_id, status, current_period_end, cancel_at_period_end')
+      .limit(0);
+    
+    if (schemaError) {
+      console.error('Table schema error:', schemaError);
+      throw schemaError;
+    }
+    console.log('Table schema verified successfully');
+    
+  } catch (err) {
+    console.error('Supabase initialization error:', err);
+    throw err;
+  }
+}
+
+// Inicializar Supabase
+checkSupabaseConnection().catch(err => {
+  console.error('Fatal: Could not initialize Supabase:', err);
+  process.exit(1);
+});
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -86,14 +112,19 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
         console.log('Saving to Supabase:', subscriptionData);
 
         // Guardar en Supabase
-        const { error } = await supabase
+        console.log('Attempting to save subscription to Supabase...');
+        const { data, error } = await supabase
           .from('subscriptions')
-          .insert(subscriptionData);
+          .insert(subscriptionData)
+          .select();
 
         if (error) {
           console.error('Error saving to Supabase:', error);
+          console.error('Subscription data that failed:', JSON.stringify(subscriptionData, null, 2));
           throw error;
         }
+
+        console.log('Successfully saved subscription to Supabase:', data);
         break;
 
       case 'customer.subscription.updated':
