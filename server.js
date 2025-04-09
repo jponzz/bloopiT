@@ -28,8 +28,8 @@ app.post('/api/create-checkout', async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/canceled`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: process.env.NEXT_PUBLIC_APP_URL,
     });
 
     res.json({ sessionId: session.id, url: session.url });
