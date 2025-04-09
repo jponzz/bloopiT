@@ -22,6 +22,18 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 // Inicializar cliente de Supabase
 const { createClient } = require('@supabase/supabase-js');
+
+// Verificar variables de Supabase
+console.log('Checking Supabase environment variables...');
+console.log('NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? '✓ Set' : '✗ Not set');
+console.log('SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? '✓ Set' : '✗ Not set');
+
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error('Missing required Supabase environment variables');
+  process.exit(1);
+}
+
+console.log('Initializing Supabase client...');
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -33,31 +45,58 @@ const supabase = createClient(
   }
 );
 
+
 // Verificar conexión con Supabase y estructura de la tabla
 async function checkSupabaseConnection() {
   try {
-    const { count, error } = await supabase
-      .from('subscriptions')
-      .select('*', { count: 'exact', head: true });
+    console.log('Testing Supabase connection...');
     
-    if (error) throw error;
-    console.log('Successfully connected to Supabase. Table exists.');
+    // Primero intentar una consulta simple
+    const { data: testData, error: testError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .limit(1);
+    
+    if (testError) {
+      console.error('Error connecting to Supabase:', testError);
+      if (testError.message.includes('does not exist')) {
+        console.error('The subscriptions table does not exist!');
+      }
+      throw testError;
+    }
+    
+    console.log('Successfully connected to Supabase');
+    console.log('Current data in subscriptions table:', testData);
     
     // Verificar estructura de la tabla
+    const expectedColumns = [
+      'user_id',
+      'stripe_subscription_id',
+      'stripe_customer_id',
+      'price_id',
+      'status',
+      'current_period_end',
+      'cancel_at_period_end'
+    ];
+    
+    console.log('Verifying table schema...');
     const { error: schemaError } = await supabase
       .from('subscriptions')
-      .select('user_id, stripe_subscription_id, stripe_customer_id, price_id, status, current_period_end, cancel_at_period_end')
+      .select(expectedColumns.join(', '))
       .limit(0);
     
     if (schemaError) {
       console.error('Table schema error:', schemaError);
+      console.error('Expected columns:', expectedColumns);
       throw schemaError;
     }
+    
     console.log('Table schema verified successfully');
+    console.log('All required columns exist:', expectedColumns);
     
   } catch (err) {
-    console.error('Supabase initialization error:', err);
-    throw err;
+    console.error('Detailed error:', JSON.stringify(err, null, 2));
+    throw new Error(`Supabase initialization failed: ${err.message || JSON.stringify(err)}`);
   }
 }
 
