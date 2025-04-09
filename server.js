@@ -1,13 +1,45 @@
 const express = require('express');
 const cors = require('cors');
+
+// Validar variables de entorno requeridas
+const requiredEnvVars = [
+  'STRIPE_SECRET_KEY',
+  'NEXT_PUBLIC_SUPABASE_URL',
+  'SUPABASE_SERVICE_ROLE_KEY',
+  'STRIPE_WEBHOOK_SECRET',
+  'NEXT_PUBLIC_APP_URL'
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`Error: ${envVar} is required but not set.`);
+    process.exit(1);
+  }
+}
+
+// Inicializar Stripe
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const { createClient } = require('@supabase/supabase-js');
 
 // Inicializar cliente de Supabase
+const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
 );
+
+// Verificar conexión con Supabase
+supabase.from('subscriptions').select('count', { count: 'exact', head: true })
+  .then(() => console.log('Successfully connected to Supabase'))
+  .catch(err => {
+    console.error('Error connecting to Supabase:', err);
+    process.exit(1);
+  });
 
 const app = express();
 const port = process.env.PORT || 3000;
