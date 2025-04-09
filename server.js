@@ -70,13 +70,19 @@ async function checkSupabaseConnection() {
     
     // Verificar estructura de la tabla
     const expectedColumns = [
+      'id',
       'user_id',
       'stripe_subscription_id',
-      'stripe_customer_id',
-      'price_id',
       'status',
       'current_period_end',
-      'cancel_at_period_end'
+      'plan_id',
+      'created_at',
+      'updated_at',
+      'payment_method_id',
+      'payment_method_type',
+      'stripe_customer_id',
+      'cancel_at_period_end',
+      'price_id'
     ];
     
     console.log('Verifying table schema...');
@@ -146,7 +152,12 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
           price_id: subscription.items.data[0].price.id,
           status: subscription.status,
           current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          cancel_at_period_end: subscription.cancel_at_period_end
+          cancel_at_period_end: subscription.cancel_at_period_end,
+          plan_id: subscription.items.data[0].plan.id || null,
+          payment_method_id: session.payment_method_types[0] || null,
+          payment_method_type: session.payment_method_types[0] || null,
+          // created_at y updated_at son manejados automáticamente por Supabase
+          // id es manejado automáticamente por Supabase
         };
         console.log('Saving to Supabase:', subscriptionData);
 
