@@ -196,7 +196,6 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
         
         // Preparar datos para Supabase
         const subscriptionData = {
-          ...paymentMethodData,
           user_id: session.client_reference_id,
           stripe_subscription_id: subscriptionId,
           stripe_customer_id: session.customer,
@@ -206,10 +205,7 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
           cancel_at_period_end: subscription.cancel_at_period_end,
           plan_id: subscription.items.data[0].plan.id || null,
           // Datos del método de pago
-          payment_method_brand: null, // Se actualizará cuando tengamos los detalles del pago
-          payment_method_last4: null, // Se actualizará cuando tengamos los detalles del pago
-          payment_method_exp_month: null, // Se actualizará cuando tengamos los detalles del pago
-          payment_method_exp_year: null, // Se actualizará cuando tengamos los detalles del pago
+          ...paymentMethodData // Esto incluye payment_method_brand, last4, exp_month y exp_year
           // created_at y updated_at son manejados automáticamente por Supabase
           // id es manejado automáticamente por Supabase
         };
@@ -226,9 +222,14 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
           .select();
 
         if (error) {
-          console.error('Error saving to Supabase:', error);
-          console.error('Subscription data that failed:', JSON.stringify(subscriptionData, null, 2));
-          throw error;
+          console.error('----------------------------------------');
+          console.error('SUPABASE ERROR');
+          console.error('Error code:', error.code);
+          console.error('Error message:', error.message);
+          console.error('Error details:', error.details);
+          console.error('Failed data:', JSON.stringify(subscriptionData, null, 2));
+          console.error('----------------------------------------');
+          throw new Error(`Error saving to Supabase: ${error.message}`);
         }
 
         console.log('Successfully saved subscription to Supabase:', data);
