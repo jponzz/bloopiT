@@ -117,7 +117,20 @@ checkSupabaseConnection().catch(err => {
 const app = express();
 const port = process.env.PORT || 3000;
 
+// Verificar configuración
+console.log('----------------------------------------');
+console.log('CONFIGURATION CHECK');
+console.log('Webhook URL should be:', `${process.env.NEXT_PUBLIC_APP_URL}/api/webhook`);
+console.log('Webhook Secret:', process.env.STRIPE_WEBHOOK_SECRET ? '✓ Set' : '✗ Not set');
+console.log('----------------------------------------');
+
 // Configurar middleware para el webhook (antes de express.json)
+// Test endpoint
+app.get('/api/webhook-test', (req, res) => {
+  console.log('Webhook test endpoint called');
+  res.json({ status: 'Webhook endpoint is accessible' });
+});
+
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   console.log('----------------------------------------');
   console.log('WEBHOOK RECEIVED');
