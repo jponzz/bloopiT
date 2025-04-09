@@ -46,12 +46,19 @@ const port = process.env.PORT || 3000;
 
 // Configurar middleware para el webhook (antes de express.json)
 app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  console.log('----------------------------------------');
+  console.log('WEBHOOK RECEIVED');
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('Body:', req.body.toString());
+  console.log('----------------------------------------');
   console.log('Webhook received:', req.headers['stripe-signature']);
   const sig = req.headers['stripe-signature'];
 
   try {
     console.log('Verifying webhook with secret:', process.env.STRIPE_WEBHOOK_SECRET);
+    console.log('Webhook Secret:', process.env.STRIPE_WEBHOOK_SECRET);
     const event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    console.log('Event constructed successfully:', event.type);
     console.log('Webhook verified, event type:', event.type);
 
     switch (event.type) {
@@ -172,6 +179,39 @@ app.post('/api/create-checkout', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+});
+
+// Manejar señales de cierre
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Performing graceful shutdown...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received. Performing graceful shutdown...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  server.close(() => {
+    console.log('Server closed due to uncaught exception');
+    process.exit(1);
+  });
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  server.close(() => {
+    console.log('Server closed due to unhandled rejection');
+    process.exit(1);
+  });
 });
