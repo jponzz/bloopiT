@@ -78,8 +78,10 @@ async function checkSupabaseConnection() {
       'plan_id',
       'created_at',
       'updated_at',
-      'payment_method_id',
-      'payment_method_type',
+      'payment_method_brand',
+      'payment_method_last4',
+      'payment_method_exp_month',
+      'payment_method_exp_year',
       'stripe_customer_id',
       'cancel_at_period_end',
       'price_id'
@@ -154,8 +156,11 @@ app.post('/api/webhook', express.raw({ type: 'application/json' }), async (req, 
           current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
           cancel_at_period_end: subscription.cancel_at_period_end,
           plan_id: subscription.items.data[0].plan.id || null,
-          payment_method_id: session.payment_method_types[0] || null,
-          payment_method_type: session.payment_method_types[0] || null,
+          // Datos del método de pago
+          payment_method_brand: null, // Se actualizará cuando tengamos los detalles del pago
+          payment_method_last4: null, // Se actualizará cuando tengamos los detalles del pago
+          payment_method_exp_month: null, // Se actualizará cuando tengamos los detalles del pago
+          payment_method_exp_year: null, // Se actualizará cuando tengamos los detalles del pago
           // created_at y updated_at son manejados automáticamente por Supabase
           // id es manejado automáticamente por Supabase
         };
